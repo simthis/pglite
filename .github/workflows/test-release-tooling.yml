@@ -2,7 +2,6 @@ name: test release tooling
 
 permissions:
   contents: read
-  packages: read
 
 on:
   pull_request:
@@ -31,41 +30,36 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
-          registry-url: "https://npm.pkg.github.com"
-          scope: "@${{ github.repository_owner }}"
       - name: Check release scripts
         run: |
           for script in .github/scripts/*.mjs; do
             node --check "$script"
           done
-      - name: Check GitHub Packages version query
+      - name: Check npm registry version query
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # The registry the family publishes to since it left GitHub Packages;
+          # each release line declares its own in .release/line.json.
+          REGISTRY: https://registry.npmjs.org
           # The probe makes the same live query a release run makes, so it names
           # the identity this repository owns and publishes rather than a scope
-          # written down here. On GitHub Packages the scope is the owner, and the
-          # run token can only read what its own owner holds.
+          # written down here.
           PUBLISHED_PACKAGE: "@${{ github.repository_owner }}/pglite"
-          # GitHub Packages answers an absent record and an unreadable one with the
-          # same 404, in the same words — it says so itself: "could not be found or
-          # you do not have permission to access it". A 404 therefore carries no
-          # meaning on its own, and is only judged here against a declared
-          # expectation. The family is published under this owner, so a 404 now
-          # means the record is gone or unreadable, and the probe fails on it.
+          # A 404 is judged only against a declared expectation. The family is
+          # published under this owner, so a 404 now means the record is gone,
+          # and the probe fails on it.
           PUBLISHED_STATE: present
         run: |
           # Positive control, so that a 404 below is an answer about the package
-          # rather than about the connection: this fails loudly on a missing token,
-          # a rejected one, or the wrong registry host, none of which the package
-          # query itself can distinguish from an absent record. It runs as its own
-          # command rather than inside a substitution, which would swallow its
-          # exit status and defeat the whole check.
-          echo "registry identity:"
-          npm whoami --registry=https://npm.pkg.github.com
+          # rather than about the connection: this fails loudly on the wrong
+          # registry host or an unreachable one, which the package query itself
+          # cannot distinguish from an absent record. It runs as its own command
+          # rather than inside a substitution, which would swallow its exit
+          # status and defeat the whole check.
+          npm ping --registry="$REGISTRY"
 
           set +e
           output="$(npm view "$PUBLISHED_PACKAGE@>=0.0.0" version --json \
-            --registry=https://npm.pkg.github.com 2> "$RUNNER_TEMP/npm-view.err")"
+            --registry="$REGISTRY" 2> "$RUNNER_TEMP/npm-view.err")"
           status=$?
           set -e
 
