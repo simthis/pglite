@@ -328,16 +328,14 @@ test("release-tooling CI verifies the live package query read-only", () => {
     "utf8",
   );
 
-  assert.match(
-    workflow,
-    /permissions:\n  contents: read\n  packages: read\n/,
-  );
-  assert.match(workflow, /registry-url: "https:\/\/npm\.pkg\.github\.com"/);
-  assert.match(workflow, /scope: "@\$\{\{ github\.repository_owner \}\}"/);
-  assert.match(workflow, /NODE_AUTH_TOKEN: \$\{\{ secrets\.GITHUB_TOKEN \}\}/);
-  // The probe names no owner of its own. On GitHub Packages the scope is the
-  // repository owner, and the run token can read only what its own owner holds,
-  // so a written-down scope breaks the moment the repository moves.
+  // The family is public on the npm registry, so the probe reads it anonymously:
+  // no package permission, no registry credentials, no token.
+  assert.match(workflow, /permissions:\n  contents: read\n\n/);
+  assert.doesNotMatch(workflow, /packages: (read|write)/);
+  assert.doesNotMatch(workflow, /registry-url:/);
+  assert.doesNotMatch(workflow, /NODE_AUTH_TOKEN|secrets\.GITHUB_TOKEN/);
+  // The probe names no owner of its own: the scope is the repository owner, so
+  // a written-down scope breaks the moment the repository moves.
   assert.match(
     workflow,
     /PUBLISHED_PACKAGE: "@\$\{\{ github\.repository_owner \}\}\/pglite"/,
@@ -347,7 +345,8 @@ test("release-tooling CI verifies the live package query read-only", () => {
     workflow,
     /npm view "\$PUBLISHED_PACKAGE@>=0\.0\.0" version --json/,
   );
-  assert.match(workflow, /--registry=https:\/\/npm\.pkg\.github\.com/);
+  assert.match(workflow, /REGISTRY: https:\/\/registry\.npmjs\.org\n/);
+  assert.match(workflow, /--registry="\$REGISTRY" 2> "\$RUNNER_TEMP\/npm-view\.err"/);
   assert.match(
     workflow,
     /parsePublishedVersions\(process\.argv\[1\], process\.argv\[2\]\)/,
@@ -361,17 +360,16 @@ test("the live package query judges a 404 against a declared state", () => {
     "utf8",
   );
 
-  // GitHub Packages returns the same 404, worded the same way, for a record
-  // that does not exist and for one this token may not read. The probe must
-  // therefore never conclude anything from a 404 alone.
+  // The probe never concludes anything from a 404 alone: it judges one only
+  // against the state the workflow declares.
   assert.match(workflow, /PUBLISHED_STATE: present/);
   assert.match(
     workflow,
     /\[ "\$PUBLISHED_STATE" = "absent" \] && grep -q 'E404'/,
   );
   // A positive control runs first, so a 404 cannot stand in for a broken
-  // connection, a missing token or a rejected one.
-  assert.match(workflow, /npm whoami --registry=https:\/\/npm\.pkg\.github\.com/);
+  // connection or the wrong registry host.
+  assert.match(workflow, /npm ping --registry="\$REGISTRY"\n/);
   // Both disagreements with the declared state fail.
   assert.match(workflow, /is declared absent, but the registry returned a record/);
   assert.match(workflow, /cat "\$RUNNER_TEMP\/npm-view\.err" >&2\n\s*exit 1/);
