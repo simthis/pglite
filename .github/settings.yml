@@ -1,0 +1,101 @@
+repository:
+  # Public: the published @simthis/pglite* packages are built from this fork.
+  private: false
+  # Pull requests land as normal merge commits: the history keeps every reviewed merge.
+  allow_squash_merge: false
+  allow_merge_commit: true
+  allow_rebase_merge: false
+  squash_merge_commit_message: COMMIT_MESSAGES
+  delete_branch_on_merge: true
+  enable_vulnerability_alerts: true
+rulesets:
+- name: Release lines
+  target: branch
+  enforcement: active
+  conditions:
+    ref_name:
+      exclude: []
+      include:
+      - refs/heads/simbox/v*
+  rules:
+  - type: deletion
+  - type: non_fast_forward
+  - type: pull_request
+    parameters:
+      required_approving_review_count: 0
+      dismiss_stale_reviews_on_push: false
+      required_reviewers: []
+      require_code_owner_review: false
+      dismissal_restriction:
+        enabled: false
+        allowed_actors: []
+      require_last_push_approval: false
+      required_review_thread_resolution: true
+      require_extra_approval_for_unattributed_changes: true
+      allowed_merge_methods:
+      - merge
+  - type: required_status_checks
+    parameters:
+      strict_required_status_checks_policy: true
+      do_not_enforce_on_create: true
+      required_status_checks:
+      - context: Stylecheck
+        integration_id: 15368
+      - context: Install, build all and test as described in README
+        integration_id: 15368
+      - context: Build and Test packages/pglite (20.x)
+        integration_id: 15368
+      - context: Build and Test packages/pglite (21.x)
+        integration_id: 15368
+      - context: Build and Test packages/pglite (22.x)
+        integration_id: 15368
+      - context: Build and Test packages/pglite (23.x)
+        integration_id: 15368
+      - context: Build and Test packages/pglite (24.x)
+        integration_id: 15368
+      - context: Build and Test packages dependent on PGlite (20.x)
+        integration_id: 15368
+      - context: Build and Test packages dependent on PGlite (21.x)
+        integration_id: 15368
+      - context: Build and Test packages dependent on PGlite (22.x)
+        integration_id: 15368
+      - context: Build and Test packages dependent on PGlite (23.x)
+        integration_id: 15368
+      - context: Build and Test packages dependent on PGlite (24.x)
+        integration_id: 15368
+      - context: Publish website with demos
+        integration_id: 15368
+  bypass_actors: []
+- name: Shared CI
+  target: branch
+  enforcement: active
+  conditions:
+    ref_name:
+      exclude: []
+      include:
+      - refs/heads/simbox/ci
+  rules:
+  - type: deletion
+  - type: non_fast_forward
+  - type: pull_request
+    parameters:
+      required_approving_review_count: 0
+      dismiss_stale_reviews_on_push: false
+      required_reviewers: []
+      require_code_owner_review: false
+      dismissal_restriction:
+        enabled: false
+        allowed_actors: []
+      require_last_push_approval: false
+      required_review_thread_resolution: true
+      require_extra_approval_for_unattributed_changes: true
+      allowed_merge_methods:
+      - merge
+  - type: required_status_checks
+    parameters:
+      strict_required_status_checks_policy: true
+      do_not_enforce_on_create: true
+      required_status_checks:
+      - context: Test publication contract
+        integration_id: 15368
+  bypass_actors: []
