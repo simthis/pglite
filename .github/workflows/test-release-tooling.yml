@@ -8,19 +8,9 @@ on:
   pull_request:
     branches:
       - simbox/ci
-    paths:
-      - ".github/attestations/**"
-      - ".github/scripts/**"
-      - ".github/workflows/build.yml"
-      - ".github/workflows/test-release-tooling.yml"
   push:
     branches:
       - simbox/ci
-    paths:
-      - ".github/attestations/**"
-      - ".github/scripts/**"
-      - ".github/workflows/build.yml"
-      - ".github/workflows/test-release-tooling.yml"
 
 jobs:
   test:
